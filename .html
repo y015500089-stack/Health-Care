@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Health Monitor | Eng. Youssef Mohamed</title>
+    <style>
+        :root {
+            --bg-main: #0b0f19;
+            --bg-card: #131b2e;
+            --border-color: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: space-between;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-card);
+            padding: 15px 25px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        header h1 {
+            color: var(--accent-blue);
+            font-size: 22px;
+            margin: 0;
+        }
+        .badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .system-status {
+            font-size: 13px;
+            background-color: #1e293b;
+            padding: 8px 14px;
+            border-radius: 20px;
+            color: #cbd5e1;
+            font-weight: bold;
+        }
+
+        .quote-banner {
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 15px;
+            margin: 15px 0;
+            direction: ltr;
+            transition: opacity 0.5s ease;
+        }
+
+        main {
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .ecg-panel {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 15px 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .ecg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 14px;
+            direction: ltr;
+        }
+        .ecg-box {
+            background-color: #070a12;
+            border-radius: 12px;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 160px;
+            display: block;
+        }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .vitals-grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .card h3 {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin: 0 0 12px 0;
+        }
+        .card .val {
+            font-size: 42px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .card .unit {
+            font-size: 14px;
+            color: #64748b;
+        }
+        .hr-color { color: #f43f5e; }
+        .temp-color { color: #f59e0b; }
+        .spo2-color { color: #38bdf8; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 5px;
+        }
+        @media (max-width: 768px) {
+            .controls { grid-template-columns: 1fr; }
+        }
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 14px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-conn { background-color: #0284c7; color: white; }
+        .btn-conn:hover { background-color: #0369a1; }
+        .btn-demo { background-color: #10b981; color: white; }
+        .btn-demo:hover { background-color: #059669; }
+        .btn-sync { background-color: #8b5cf6; color: white; }
+        .btn-sync:hover { background-color: #7c3aed; }
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            font-size: 15px;
+            color: var(--text-muted);
+            direction: ltr;
+        }
+        footer span {
+            color: var(--accent-blue);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🩺 Smart Vital Signs Monitor</h1>
+        <div class="badges">
+            <div class="system-status" id="statusText">الحالة: غير متصل</div>
+            <div class="system-status" id="cloudStatus">☁️ السيرفر: جاهز</div>
+        </div>
+    </header>
+
+    <div class="quote-banner" id="healthQuote">"Your health is your greatest wealth. Take care of your heart."</div>
+
+    <main>
+        <div class="ecg-panel">
+            <div class="ecg-header">
+                <span>❤️ LIVE ECG WAVEFORM</span>
+                <span style="color: #f43f5e;">LEAD II • MULTI-DEVICE SYNC</span>
+            </div>
+            <div class="ecg-box">
+                <canvas id="ecgCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="vitals-grid">
+            <div class="card">
+                <h3>❤️ نبض القلب (Heart Rate)</h3>
+                <div class="val hr-color" id="heartRate">--</div>
+                <div class="unit">نبضة / دقيقة (BPM)</div>
+            </div>
+
+            <div class="card">
+                <h3>🌡️ درجة الحرارة (Temp)</h3>
+                <div class="val temp-color" id="temperature">--</div>
+                <div class="unit">درجة مئوية (°C)</div>
+            </div>
+
+            <div class="card">
+                <h3>💧 نسبة الأكسجين (SpO2)</h3>
+                <div class="val spo2-color" id="spo2">--</div>
+                <div class="unit">تشبع الدم (%)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-conn" onclick="connectBluetooth()">🔵 1. اتصال بجهاز بلوتوث (إرسال)</button>
+            <button class="btn-demo" onclick="toggleDemo()">⚡ 2. وضع المحاكاة (إرسال)</button>
+            <button class="btn-sync" onclick="toggleReceiveMode()">📡 3. مراقبة عن بُعد (استقبال)</button>
+        </div>
+    </main>
+
+    <footer>
+        Made by <span>Eng : Youssef Mohamed</span>
+    </footer>
+
+    <script>
+        // ==========================================
+        // حط رابط قاعدة بيانات Firebase هنا لما تطلعه من لوحة التحكم
+        const FIREBASE_URL = "https://health-monitor-default-rtdb.firebaseio.com/vitals.json";
+        // ==========================================
+
+        let demoInterval = null;
+        let receiveInterval = null;
+        let currentBPM = 0;
+
+        // إرسال البيانات للسيرفر في الخلفية
+        async function sendToCloud(hr, temp, spo2) {
+            if (FIREBASE_URL.includes("YOUR-PROJECT-ID")) return;
+            try {
+                await fetch(FIREBASE_URL, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        heartRate: hr,
+                        temperature: temp,
+                        spo2: spo2,
+                        updatedAt: Date.now()
+                    })
+                });
+                document.getElementById('cloudStatus').innerText = "☁️ السيرفر: تم التحديث 🟢";
+                document.getElementById('cloudStatus').style.color = "#4ade80";
+            } catch (err) {
+                document.getElementById('cloudStatus').innerText = "☁️ السيرفر: خطأ في الإرسال 🔴";
+            }
+        }
+
+        // استقبال البيانات على الأجهزة الأخرى
+        function toggleReceiveMode() {
+            const btn = document.querySelector('.btn-sync');
+            const statusText = document.getElementById('statusText');
+
+            if (demoInterval) toggleDemo();
+
+            if (receiveInterval) {
+                clearInterval(receiveInterval);
+                receiveInterval = null;
+                currentBPM = 0;
+                resetDisplay();
+                btn.innerText = "📡 3. مراقبة عن بُعد (استقبال)";
+                btn.style.backgroundColor = "#8b5cf6";
+                statusText.innerText = "الحالة: تم إيقاف المراقبة";
+            } else {
+                btn.innerText = "⏹️ إيقاف المراقبة عن بُعد";
+                btn.style.backgroundColor = "#ef4444";
+                statusText.innerText = "📡 متصل بالسيرفر (وضع الاستقبال الحي)";
+                statusText.style.color = "#c084fc";
+
+                fetchFromCloud();
+                receiveInterval = setInterval(fetchFromCloud, 1500);
+            }
+        }
+
+        async function fetchFromCloud() {
+            try {
+                const response = await fetch(FIREBASE_URL);
+                const data = await response.json();
+                if (data && data.heartRate) {
+                    document.getElementById('heartRate').innerText = data.heartRate;
+                    document.getElementById('temperature').innerText = data.temperature;
+                    document.getElementById('spo2').innerText = data.spo2 + "%";
+                    currentBPM = Number(data.heartRate);
+                    document.getElementById('cloudStatus').innerText = "☁️ السيرفر: متصل حي 🟢";
+                    document.getElementById('cloudStatus').style.color = "#4ade80";
+                }
+            } catch (err) {
+                document.getElementById('cloudStatus').innerText = "☁️ السيرفر: فشل الاستقبال 🔴";
+            }
+        }
+
+        function resetDisplay() {
+            document.getElementById('heartRate').innerText = "--";
+            document.getElementById('temperature').innerText = "--";
+            document.getElementById('spo2').innerText = "--";
+        }
+
+        // الجمل التحفيزية
+        const quotes = [
+            "\"Your health is your greatest wealth. Take care of your heart.\"",
+            "\"A healthy outside starts from the inside.\"",
+            "\"Listen to your body, every heartbeat matters.\"",
+            "\"Invest in your health today for a stronger tomorrow.\""
+        ];
+        let quoteIndex = 0;
+        setInterval(() => {
+            const quoteEl = document.getElementById('healthQuote');
+            quoteEl.style.opacity = 0;
+            setTimeout(() => {
+                quoteIndex = (quoteIndex + 1) % quotes.length;
+                quoteEl.innerText = quotes[quoteIndex];
+                quoteEl.style.opacity = 1;
+            }, 500);
+        }, 5000);
+
+        // رسم موجة القلب
+        const canvas = document.getElementById('ecgCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1000;
+        canvas.height = 160;
+
+        let x = 0, lastX = 0, lastY = canvas.height / 2, beatStep = 0;
+        const wavePattern = [0, 0, -10, -18, 0, 18, -68, 52, -22, 0, 0, -12, -18, -6, 0, 0];
+
+        function drawECG() {
+            ctx.fillStyle = '#070a12';
+            ctx.fillRect(x, 0, 20, canvas.height);
+
+            ctx.strokeStyle = '#131b2e';
+            ctx.lineWidth = 0.8;
+            if (x % 25 === 0) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            let offset = 0;
+            if (currentBPM > 0) {
+                if (beatStep < wavePattern.length) {
+                    offset = wavePattern[beatStep];
+                    beatStep++;
+                } else {
+                    const framesBetweenBeats = Math.max(25, Math.floor(4200 / currentBPM));
+                    beatStep++;
+                    if (beatStep >= framesBetweenBeats) beatStep = 0;
+                }
+            }
+
+            const currentY = (canvas.height / 2) + offset;
+            ctx.beginPath();
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = '#f43f5e';
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, currentY);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            lastX = x;
+            lastY = currentY;
+            x += 2.5;
+
+            if (x >= canvas.width) { x = 0; lastX = 0; }
+            requestAnimationFrame(drawECG);
+        }
+        drawECG();
+
+        // البلوتوث الحقيقي
+        async function connectBluetooth() {
+            const statusText = document.getElementById('statusText');
+            if (demoInterval) toggleDemo();
+            if (receiveInterval) toggleReceiveMode();
+
+            try {
+                statusText.innerText = "جاري البحث عن أجهزة بلوتوث...";
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: ['heart_rate', 'health_thermometer', 'pulse_oximeter']
+                });
+
+                statusText.innerText = "جاري الاتصال بـ: " + (device.name || "جهاز طبي");
+                const server = await device.gatt.connect();
+                statusText.innerText = "✅ متصل بـ: " + (device.name || "الجهاز");
+                statusText.style.color = "#4ade80";
+
+                const hrService = await server.getPrimaryService('heart_rate');
+                const hrChar = await hrService.getCharacteristic('heart_rate_measurement');
+                await hrChar.startNotifications();
+                hrChar.addEventListener('characteristicvaluechanged', (event) => {
+                    const hr = event.target.value.getUint8(1);
+                    document.getElementById('heartRate').innerText = hr;
+                    currentBPM = hr;
+                    const temp = document.getElementById('temperature').innerText;
+                    const spo2 = document.getElementById('spo2').innerText.replace('%', '');
+                    sendToCloud(hr, temp, spo2);
+                });
+            } catch (error) {
+                statusText.innerText = "❌ فشل الاتصال أو تم الإلغاء";
+                statusText.style.color = "#f87171";
+            }
+        }
+
+        // وضع المحاكاة
+        function toggleDemo() {
+            const btn = document.querySelector('.btn-demo');
+            const statusText = document.getElementById('statusText');
+            if (receiveInterval) toggleReceiveMode();
+
+            if (demoInterval) {
+                clearInterval(demoInterval);
+                demoInterval = null;
+                currentBPM = 0;
+                resetDisplay();
+                btn.innerText = "⚡ 2. وضع المحاكاة (إرسال)";
+                btn.style.backgroundColor = "#10b981";
+                statusText.innerText = "الحالة: تم إيقاف المحاكاة";
+                statusText.style.color = "#cbd5e1";
+            } else {
+                btn.innerText = "⏹️ إيقاف المحاكاة";
+                btn.style.backgroundColor = "#ef4444";
+                statusText.innerText = "🟢 وضع المحاكاة نشط (يرسل للسيرفر)";
+                statusText.style.color = "#4ade80";
+
+                updateValues();
+                demoInterval = setInterval(updateValues, 1800);
+            }
+        }
+
+        function updateValues() {
+            const hr = Math.floor(Math.random() * (92 - 70 + 1)) + 70;
+            const temp = (Math.random() * (37.1 - 36.5) + 36.5).toFixed(1);
+            const spo2 = Math.floor(Math.random() * (99 - 96 + 1)) + 96;
+
+            document.getElementById('heartRate').innerText = hr;
+            document.getElementById('temperature').innerText = temp;
+            document.getElementById('spo2').innerText = spo2 + "%";
+            currentBPM = hr;
+
+            sendToCloud(hr, temp, spo2);
+        }
+    </script>
+</body>
+</html>
